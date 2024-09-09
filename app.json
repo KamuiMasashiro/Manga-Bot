@@ -28,7 +28,7 @@
         },
         "CHANNEL": {
             "description": "Channel that users must be subscribed in order to use the bot.",
-            "required": false
+            "required": true
         },
         "DATABASE_URL_PRIMARY": {
             "description": "Will be used as database url. If not given heroku database will be used instead.",
