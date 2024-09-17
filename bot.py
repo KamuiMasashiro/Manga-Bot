@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass
 import datetime as dt
 import json
+from pyrogram.enums import ChatMemberStatus
 
 import pyrogram.errors
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InputMediaDocument
@@ -177,6 +178,43 @@ async def on_start(client: Client, message: Message):
                         "\n"
                         "Check /help for more information.__**")
     logger.info(f"User {message.from_user.id} finished the start command")
+
+
+
+@bot.on_message(filters=filters.command(['broadcast']))
+async def broadcast_message(client: Client, message: Message):
+    # Fetch the user status in the chat
+    chat_member = await client.get_chat_member(message.chat.id, message.from_user.id)
+    
+    # Check if the user is an admin
+    if chat_member.status not in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]:
+        await message.reply("⛔ You must be an admin to use this command!")
+        return
+    
+    # Ensure the command has an argument (the message to broadcast)
+    if len(message.command) < 2:
+        await message.reply("⚠️ Please provide a message to broadcast.\nUsage: `/broadcast <message>`")
+        return
+
+    # Extract the message to broadcast
+    broadcast_text = " ".join(message.command[1:])
+
+    logger.info(f"Admin {message.from_user.id} is broadcasting a message.")
+    
+    # Broadcast the message to all users (for example, you could have a list of user IDs stored)
+    # This is a placeholder to illustrate broadcasting logic
+    user_ids = get_all_users()  # This should be your logic to retrieve all user IDs
+    for user_id in user_ids:
+        try:
+            await client.send_message(chat_id=user_id, text=broadcast_text)
+        except Exception as e:
+            logger.error(f"Failed to send message to {user_id}: {e}")
+    
+    await message.reply("✅ Broadcast sent successfully!")
+    logger.info(f"Admin {message.from_user.id} finished broadcasting.")
+
+
+
 
 
 @bot.on_message(filters=filters.command(['help']))
