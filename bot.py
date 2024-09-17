@@ -6,7 +6,8 @@ import re
 from dataclasses import dataclass
 import datetime as dt
 import json
-from pyrogram.enums import ChatMemberStatus
+from pyrogram import filters
+from pyrogram.types import ChatPermissions
 
 import pyrogram.errors
 from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, InputMediaDocument
@@ -181,39 +182,41 @@ async def on_start(client: Client, message: Message):
 
 
 
+# Function to check if the user is an admin
+async def is_admin(client: Client, message: Message):
+    chat_member = await client.get_chat_member(message.chat.id, message.from_user.id)
+    return chat_member.status in ("administrator", "creator")
+
+# Command to broadcast message
 @bot.on_message(filters=filters.command(['broadcast']))
 async def broadcast_message(client: Client, message: Message):
-    # Fetch the user status in the chat
-    chat_member = await client.get_chat_member(message.chat.id, message.from_user.id)
-    
-    # Check if the user is an admin
-    if chat_member.status not in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]:
-        await message.reply("⛔ You must be an admin to use this command!")
+    if not await is_admin(client, message):
+        await message.reply("❌ You are not authorized to use this command. Only admins can broadcast messages.")
+        logger.warning(f"Unauthorized broadcast attempt by user {message.from_user.id}")
         return
-    
-    # Ensure the command has an argument (the message to broadcast)
+
+    # Extracting the broadcast message after the command
     if len(message.command) < 2:
-        await message.reply("⚠️ Please provide a message to broadcast.\nUsage: `/broadcast <message>`")
+        await message.reply("❌ Please provide a message to broadcast.")
         return
 
-    # Extract the message to broadcast
-    broadcast_text = " ".join(message.command[1:])
+    broadcast_text = message.text.split(maxsplit=1)[1]
 
-    logger.info(f"Admin {message.from_user.id} is broadcasting a message.")
+    logger.info(f"User {message.from_user.id} (admin) is broadcasting a message")
     
-    # Broadcast the message to all users (for example, you could have a list of user IDs stored)
-    # This is a placeholder to illustrate broadcasting logic
-    user_ids = get_all_users()  # This should be your logic to retrieve all user IDs
-    for user_id in user_ids:
+    # Logic to broadcast the message (for example, to all users in a specific chat or list)
+    # Assuming `target_chat_ids` is a list of chat IDs to which the message should be broadcasted
+    target_chat_ids = [...]  # Add the target chat/user IDs
+
+    for chat_id in target_chat_ids:
         try:
-            await client.send_message(chat_id=user_id, text=broadcast_text)
+            await client.send_message(chat_id, broadcast_text)
+            logger.info(f"Broadcast message sent to chat ID: {chat_id}")
         except Exception as e:
-            logger.error(f"Failed to send message to {user_id}: {e}")
-    
-    await message.reply("✅ Broadcast sent successfully!")
-    logger.info(f"Admin {message.from_user.id} finished broadcasting.")
+            logger.error(f"Failed to send broadcast message to chat ID: {chat_id} - {e}")
 
-
+    await message.reply("✅ Broadcast message sent.")
+    logger.info(f"Broadcast completed by user {message.from_user.id}")
 
 
 
